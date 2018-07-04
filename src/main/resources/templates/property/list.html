@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:margin="http://www.w3.org/1999/xhtml">
+<head>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+            integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+            crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+            integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
+            crossorigin="anonymous"></script>
+
+</head>
+<body>
+<div class="container fluid-responsive" style="min-height: 500px">
+    <div>
+        <!--<h1>Property Listings</h1>-->
+        <div>
+            <div>
+                <table id="properties" class="col-md-12">
+                    <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Price</th>
+                        <th>Bedrooms</th>
+                        <th>Bathrooms</th>
+                        <th>House Number</th>
+                        <th>Address</th>
+                        <th>Region</th>
+                        <th>Postcode</th>
+                        <th>Property Type</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="property : ${properties}">
+                        <td id="refNum" class="refNum" th:text="${property.reference}"/>
+                        <td th:text="${property.price}"/>
+                        <td th:text="${property.bedrooms}"/>
+                        <td th:text="${property.bathrooms}"/>
+                        <td th:text="${property.houseNumber}"/>
+                        <td th:text="${property.address}"/>
+                        <td th:text="${property.region}"/>
+                        <td th:text="${property.postcode}"/>
+                        <td th:text="${property.type}"/>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <br/>
+        <div class="form-group form-group-lg">
+            <div class="d-inline-block">
+                <label class="col-sm-6 control-label">Enter a postcode outward to determine the postcode's average
+                    house price:(example: W1F)</label>
+
+                <input type="text" class="col-sm-2" id="postOut"/>
+
+                <button text="Calculate" type="button" class="col-sm-2 btn btn-primary btn-lg"
+                        onclick="getAvgPrice()">Calculate
+                </button>
+            </div>
+        </div>
+        <div class="form-group form-group-lg">
+            <label id="avgResult" class="col-sm-4"></label>
+        </div>
+        <br/>
+        <div class="form-group form-group-lg">
+            <div class="d-inline-block">
+                <label class="col-sm-4 control-label">Calculate the difference in property prices between </label>
+                <label for="propType1"></label>
+                <select id="propType1" class="col-sm-2">
+                    <option selected>detached houses</option>
+                    <option>flats</option>
+                    <option>terraced houses</option>
+                    <option>mansions</option>
+                </select>
+                <label>and</label>
+                <select id="propType2" class="col-sm-2">
+                    <option selected>flats</option>
+                    <option>detached houses</option>
+                    <option>terraced houses</option>
+                    <option>mansion</option>
+                </select>
+
+                <button text="Calculate" type="button" class="btn btn-primary btn-lg"
+                        onclick="getPriceDiff()">Calculate
+                </button>
+            </div>
+            <div class="form-group form-group-lg">
+                <label id="diffResult" class="col-sm-4"></label>
+            </div>
+            <br/>
+            <div class="form-group form-group-lg">
+                <label class="col-sm-4 control-label">Highlight the most expensive properties by percentage</label>
+                <select id="percent" class="col-sm-2">
+                    <option selected>10</option>
+                    <option>25</option>
+                    <option>50</option>
+                    <option>75</option>
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <button text="Calculate" type="button" class="btn btn-primary btn-lg"
+                        onclick="getHighestCost()">Calculate
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        $('#postOut').clear;
+        $("#avgResult").clear;
+        $("tr").removeClass("highlight");
+    });
+
+
+    function getAvgPrice() {
+        var po = $("#postOut").val();
+        $.ajax({
+            type: 'GET',
+            contentType: 'application/json',
+            url: '/properties/average',
+            data: {postcodeOutward: po},
+            dataType: 'json',
+            timeout: 600000,
+            success: function (result) {
+                $("#avgResult").text("Average price for " + po + " is:  £" + result)
+            },
+            error: function (ex) {
+                console.log(ex);
+            }
+        });
+    }
+
+    function getPriceDiff() {
+        var propType1 = $("#propType1").val();
+        var propType2 = $("#propType2").val();
+        $.ajax({
+            type: 'GET',
+            contentType: 'application/json',
+            url: '/properties/difference',
+            data: {propertyType1: propType1, propertyType2: propType2},
+            dataType: 'json',
+            timeout: 600000,
+            success: function (result) {
+                $("#diffResult").text("The price difference between " + propType1 + " and " + propType2 + " is:  £" + result)
+            },
+            error: function (ex) {
+                console.log(ex);
+            }
+        });
+    }
+
+    function getHighestCost() {
+        $("tr").removeClass("highlight");
+        var percent = $("#percent").val();
+        var propNum = 0;
+        $.ajax({
+            type: 'GET',
+            contentType: 'application/json',
+            url: '/properties/highest',
+            data: {percentageHighest: percent},
+            dataType: 'json',
+            timeout: 600000,
+            success: function (result) {
+                $.each(result, function (i, propNum) {
+                    console.log("property: " + propNum);
+                    $("#properties tr").each(function (j) {
+                        var current = $(this);
+                        var refNum = current.find(".refNum");
+                        var textRef = refNum.text();
+                        console.log("ref Num: " + textRef);
+                        if (propNum == textRef) {
+                            current.addClass("highlight");
+                        }
+                    });
+                });
+            },
+            error: function (ex) {
+                console.log(ex);
+            }
+        });
+    }
+
+</script>
+
+</body>
+</html>
+
+<style type="text/css">
+    td {
+        text-align: center;
+    }
+
+    table, th, td {
+        border: 1px solid black;
+    }
+
+    .highlight {
+        background: yellow;
+        color: black;
+    }
+</style>
+
